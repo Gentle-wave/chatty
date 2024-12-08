@@ -14,23 +14,6 @@ This is the backend service for a real-time chat application. It provides user a
 
 ---
 
-## **Project Structure**
-
-```
-src/
-│
-├── config/          # Configuration for MongoDB, Cloudinary, and environment variables
-├── controllers/     # Logic for handling API requests
-├── middlewares/     # Custom middlewares (authentication, validation, error handling)
-├── models/          # Mongoose models for User, Message, and Chat
-├── routes/          # REST API routes
-├── sockets/         # WebSocket logic for chat
-├── utils/           # Utility functions (error handling, JWT, async wrappers)
-└── index.js         # Entry point of the application
-```
-
----
-
 ## **Setup Instructions**
 
 ### **Prerequisites**
