@@ -25,4 +25,6 @@ const messageSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
+messageSchema.index({ chatRoom: 1, createdAt: -1 }); // For fetching messages in a chat room
+
 module.exports = mongoose.model('Message', messageSchema);

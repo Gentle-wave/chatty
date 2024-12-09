@@ -15,6 +15,6 @@ module.exports = (req, res, next) => {
         return next(new AppError('Invalid token. Please log in again.', 401));
     }
 
-    req.user = decoded; // Attach the user data to the request object
+    req.user = decoded;
     next();
 };

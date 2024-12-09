@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
-router.get('/', getAllUsers); // Get a list of all users
-router.get('/me', getUserDetails); // Get details of the logged-in user
+router.get('/', getAllUsers); 
+router.get('/me', getUserDetails);
 
 module.exports = router;

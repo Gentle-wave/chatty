@@ -24,6 +24,21 @@ const chatSocket = (io) => {
             io.to(chatRoomId).emit('newMessage', message);
         });
 
+        // Get a chat Room
+        socket.on('getRoom', async ({ user1, user2 }) => {
+            let chatRoom = await Chat.findOne({
+                participants: { $all: [user1, user2] },
+            });
+
+            if (!chatRoom) {
+                chatRoom = await Chat.create({
+                    participants: [user1, user2],
+                });
+            }
+
+            callback({ roomId: chatRoom._id });
+        });
+
         // Delete a message
         socket.on('deleteMessage', async ({ messageId, chatRoomId }) => {
             await Message.findByIdAndDelete(messageId);

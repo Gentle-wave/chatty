@@ -29,7 +29,6 @@ exports.signup = catchAsync(async (req, res, next) => {
       profilePicture = female[Math.floor(Math.random() * female.length)];
     }
 
-    // Create user with auth service
     const user = {
       email,
       username,
@@ -41,10 +40,8 @@ exports.signup = catchAsync(async (req, res, next) => {
 
     await authService.registerUser(user);
 
-    // Generate JWT token
     const token = generateToken({ id: user._id });
 
-    // Respond with user data and token
     res.status(201).json({
       status: 'success',
       token,
