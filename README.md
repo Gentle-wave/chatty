@@ -26,8 +26,8 @@ This is the backend service for a real-time chat application. It provides user a
 ### **1. Clone the Repository**
 
 ```bash
-git clone https://github.com/your-repo/chat-backend.git
-cd chat-backend
+git
+cd chatty
 ```
 
 ---
