@@ -3,14 +3,37 @@ const Message = require('../models/Message');
 const User = require('../models/User');
 
 const chatSocket = (io) => {
-    io.on('connection', (socket) => {
-        console.log('A user connected:', socket.id);
+    io.on('connection', async (socket) => {
+        const { userId } = socket.handshake.query; // Get userId from query parameters
+
+        if (!userId) {
+            console.log('No userId provided on connection');
+            socket.disconnect();
+            return;
+        }
+
+        console.log(`A user connected: ${socket.id} with userId: ${userId}`);
+
+        try {
+            // Fetch all chat rooms the user is a participant of
+            const userChatRooms = await Chat.find({ participants: userId }).select('_id');
+            const roomIds = userChatRooms.map((room) => room._id.toString());
+
+            // Join the user to all their chat rooms
+            roomIds.forEach((roomId) => socket.join(roomId));
+            console.log(`User ${userId} joined rooms: ${roomIds}`);
+
+            // Notify the frontend that the user has joined the rooms
+            socket.emit('joinedRooms', roomIds);
+        } catch (error) {
+            console.error('Error joining user to rooms:', error.message);
+        }
 
         // Join a specific chat room
-        socket.on('joinRoom', ({ chatRoomId }) => {
-            socket.join(chatRoomId);
-            console.log(`User joined room: ${chatRoomId}`);
-        });
+        // socket.on('joinRoom', ({ chatRoomId }) => {
+        //     socket.join(chatRoomId);
+        //     console.log(`User joined room: ${chatRoomId}`);
+        // });
 
         // Send a message
         socket.on('sendMessage', async ({ chatRoomId, senderId, receiverId, content }) => {
@@ -25,7 +48,7 @@ const chatSocket = (io) => {
         });
 
         // Get a chat Room
-        socket.on('getRoom', async ({ user1, user2 }) => {
+        socket.on('getRoom', async ({ user1, user2 }, callback) => {
             let chatRoom = await Chat.findOne({
                 participants: { $all: [user1, user2] },
             });
