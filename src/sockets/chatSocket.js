@@ -4,7 +4,7 @@ const User = require('../models/User');
 
 const chatSocket = (io) => {
     io.on('connection', async (socket) => {
-        const { userId } = socket.handshake.query; // Get userId from query parameters
+        const { userId } = socket.handshake.query;
 
         if (!userId) {
             console.log('No userId provided on connection');
@@ -15,15 +15,12 @@ const chatSocket = (io) => {
         console.log(`A user connected: ${socket.id} with userId: ${userId}`);
 
         try {
-            // Fetch all chat rooms the user is a participant of
             const userChatRooms = await Chat.find({ participants: userId }).select('_id');
             const roomIds = userChatRooms.map((room) => room._id.toString());
 
-            // Join the user to all their chat rooms
             roomIds.forEach((roomId) => socket.join(roomId));
             console.log(`User ${userId} joined rooms: ${roomIds}`);
 
-            // Notify the frontend that the user has joined the rooms
             socket.emit('joinedRooms', roomIds);
         } catch (error) {
             console.error('Error joining user to rooms:', error.message);
@@ -36,7 +33,7 @@ const chatSocket = (io) => {
         // });
 
         // Send a message
-        socket.on('sendMessage', async ({ chatRoomId, senderId, receiverId, content }) => {
+        socket.on('sendMessage', async ({ chatRoomId, senderId, receiverId, content, fakeMessageId }) => {
             const message = await Message.create({
                 chatRoom: chatRoomId,
                 sender: senderId,
@@ -44,7 +41,9 @@ const chatSocket = (io) => {
                 content,
             });
 
-            io.to(chatRoomId).emit('newMessage', message);
+            await Chat.findByIdAndUpdate(chatRoomId, { lastMessage: message._id });
+
+            io.to(chatRoomId).emit('newMessage', ...message, fakeMessageId);
         });
 
         // Get a chat Room
@@ -64,9 +63,32 @@ const chatSocket = (io) => {
 
         // Delete a message
         socket.on('deleteMessage', async ({ messageId, chatRoomId }) => {
-            await Message.findByIdAndDelete(messageId);
-            io.to(chatRoomId).emit('messageDeleted', messageId);
+            try {
+                const messageToDelete = await Message.findById(messageId);
+
+                if (!messageToDelete) {
+                    return console.error('Message not found.');
+                }
+
+                await Message.findByIdAndDelete(messageId);
+
+                const chatRoom = await Chat.findById(chatRoomId);
+
+                if (chatRoom.lastMessage && chatRoom.lastMessage.toString() === messageId) {
+                    const latestMessage = await Message.findOne({ chatRoom: chatRoomId })
+                        .sort({ createdAt: -1 }); // Get the next most recent message
+
+                    await Chat.findByIdAndUpdate(chatRoomId, {
+                        lastMessage: latestMessage ? latestMessage._id : null,
+                    });
+                }
+
+                io.to(chatRoomId).emit('messageDeleted', messageId);
+            } catch (error) {
+                console.error('Error deleting message:', error.message);
+            }
         });
+
 
         // Check if a user is online
         socket.on('isUserOnline', async ({ userId }, callback) => {
