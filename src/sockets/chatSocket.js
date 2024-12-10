@@ -26,12 +26,6 @@ const chatSocket = (io) => {
             console.error('Error joining user to rooms:', error.message);
         }
 
-        // Join a specific chat room
-        // socket.on('joinRoom', ({ chatRoomId }) => {
-        //     socket.join(chatRoomId);
-        //     console.log(`User joined room: ${chatRoomId}`);
-        // });
-
         // Send a message
         socket.on('sendMessage', async ({ chatRoomId, senderId, receiverId, content, fakeMessageId }) => {
             const message = await Message.create({
@@ -43,9 +37,9 @@ const chatSocket = (io) => {
 
             await Chat.findByIdAndUpdate(chatRoomId, { lastMessage: message._id });
 
-            io.to(chatRoomId).emit('newMessage', ...message, fakeMessageId);
+            console.log('message emited; ', message)
+            io.to(chatRoomId).emit('newMessage', message, fakeMessageId);
         });
-
         // Get a chat Room
         socket.on('getRoom', async ({ user1, user2 }, callback) => {
             let chatRoom = await Chat.findOne({

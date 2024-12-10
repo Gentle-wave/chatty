@@ -9,9 +9,7 @@ exports.getUserChatRooms = async (userId) => {
             select: 'content createdAt',
         });
 
-    // Transform the data into the desired format
     return chatRooms.map((chat) => {
-        // Find the participant that is not the current user
         const otherParticipant = chat.participants.find(
             (participant) => participant._id.toString() !== userId.toString()
         );
