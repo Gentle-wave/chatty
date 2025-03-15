@@ -1,5 +1,5 @@
 const request = require('supertest');
-const app = require('../src/index'); // Assuming the app is exported in index.js
+const app = require('../src/index'); 
 
 describe('Auth Endpoints', () => {
     it('should signup a user successfully', async () => {
