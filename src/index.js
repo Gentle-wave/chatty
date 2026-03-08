@@ -28,7 +28,7 @@ app.use('/api/v1/chat', chatRoutes);
 app.use('/api/v1/user', userRoutes);
 
 app.get('/', (req, res) => {
-    res.json({ message: 'Welcome to the Chat Application API' });
+    res.json({ message: 'Welcome to the Chat Application API deployed' });
 });
 
 app.all('*', (req, res, next) => {
