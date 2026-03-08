@@ -48,14 +48,20 @@ process.on('uncaughtException', (err) => {
     console.error('Uncaught Exception:', err);
 });
 
-const PORT = process.env.PORT || 5000;
+// Export app for testing
+module.exports = app;
 
-connectDB()
-    .then(() => {
-        server.listen(PORT, () => {
-            console.log(`Server running on http://localhost:${PORT}`);
+// Only start server if this file is run directly
+if (require.main === module) {
+    const PORT = process.env.PORT || 5000;
+
+    connectDB()
+        .then(() => {
+            server.listen(PORT, () => {
+                console.log(`Server running on http://localhost:${PORT}`);
+            });
+        })
+        .catch((err) => {
+            console.error('Error connecting to MongoDB:', err);
         });
-    })
-    .catch((err) => {
-        console.error('Error connecting to MongoDB:', err);
-    });
+}
