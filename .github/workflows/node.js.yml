@@ -1,7 +1,7 @@
 # This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
 
-name: Node.js CI
+name: CI/CD Pipeline
 
 on:
   push:
@@ -10,22 +10,106 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
-
+  test:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
-        node-version: [22.x]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
-
+        node-version: [22.x]   # You can add more versions if needed
     steps:
-    - uses: actions/checkout@v4
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    - run: npm ci
-    - run: npm run build --if-present
-    - run: npm test
+      - uses: actions/checkout@v4
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build --if-present
+      - run: npm test
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Zero-downtime deployment to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            echo "🚀 Starting zero-downtime deployment..."
+            cd ~/api-prod/chatty
+
+            # Store current version
+            CURRENT_COMMIT=$(git rev-parse HEAD)
+            echo "Current version: $CURRENT_COMMIT"
+
+            # Pull latest code
+            echo "📦 Pulling latest code..."
+            git pull origin main
+
+            NEW_COMMIT=$(git rev-parse HEAD)
+            echo "New version: $NEW_COMMIT"
+
+            if [ "$CURRENT_COMMIT" = "$NEW_COMMIT" ]; then
+              echo "✅ Already at latest version. Exiting."
+              exit 0
+            fi
+
+            # Install dependencies
+            echo "📦 Installing dependencies..."
+            npm ci
+
+            # Check current PM2 mode
+            if pm2 show chatty-prod &>/dev/null; then
+              CURRENT_MODE=$(pm2 show chatty-prod | grep "exec mode" | awk '{print $NF}')
+              echo "Current mode: $CURRENT_MODE"
+              
+              if [ "$CURRENT_MODE" = "cluster" ]; then
+                echo "🔄 Reloading with zero downtime..."
+                pm2 reload chatty-prod
+              else
+                echo "🔄 Switching to cluster mode..."
+                pm2 delete chatty-prod
+                pm2 start src/index.js -i max --name chatty-prod
+              fi
+            else
+              echo "🆕 First time setup - starting in cluster mode..."
+              pm2 start src/index.js -i max --name chatty-prod
+            fi
+
+            # Wait for app to be ready with retries
+            echo "⏳ Waiting for app to be ready..."
+            RETRIES=12
+            for i in $(seq 1 $RETRIES); do
+              sleep 5
+              if curl -f http://localhost:5000/ > /dev/null 2>&1; then
+                echo "✅ App is responding!"
+                break
+              fi
+              if [ $i -eq $RETRIES ]; then
+                echo "❌ App failed to respond after 60 seconds."
+                exit 1
+              fi
+              echo "Retry $i/$RETRIES..."
+            done
+
+            # Health check using root endpoint (returns 200)
+            echo "🏥 Running health check..."
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/)
+            if [ "$HTTP_CODE" -eq 200 ]; then
+              echo "✅ Health check passed! (HTTP $HTTP_CODE)"
+            else
+              echo "❌ Health check failed! (HTTP $HTTP_CODE)"
+              exit 1
+            fi
+
+            # Save PM2 config
+            pm2 save
+
+            echo "🎉 Deployment complete! Zero downtime achieved."
+            echo "📊 PM2 Status:"
+            pm2 list
