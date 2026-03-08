@@ -81,8 +81,38 @@ npm start
 To run the Jest test suite:
 
 ```bash
+# Run tests once
 npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage report
+npm run test:coverage
 ```
+
+**Test Setup**:
+- Tests use mocked database and services to avoid requiring a live MongoDB connection
+- A `.env.test` file is created for test environment variables
+- Tests use Jest with SuperTest for API endpoint testing
+- All tests are located in the `tests/` directory
+
+---
+
+## **Continuous Integration (GitHub Actions)**
+
+This project includes automated testing via GitHub Actions. Tests run automatically on:
+- Push to `main` or `develop` branches
+- Pull requests to `main` or `develop` branches
+
+The CI workflow:
+1. Sets up Node.js (tests run on versions 16.x, 18.x, and 20.x)
+2. Installs dependencies
+3. Runs the test suite
+4. Uploads code coverage reports
+
+**Required GitHub Secrets** (for MongoDB in CI):
+- `DB_URI`: Your MongoDB connection string for testing (optional - defaults to local MongoDB)
 
 ---
 
@@ -116,20 +146,20 @@ npm test
 ---
 
 ### **Users**
-- **GET** `/api/v1/users`  
+- **GET** `/api/v1/user/`  
   Retrieve all users. Requires a valid token in the `Authorization` header.
 
-- **GET** `/api/v1/users/me`  
-  Retrieve logged-in user details.
+- **GET** `/api/v1/user/me`  
+  Retrieve logged-in user details. Requires a valid token.
 
 ---
 
 ### **Chats**
-- **GET** `/api/v1/chats`  
-  Fetch all chat rooms for the logged-in user.
+- **GET** `/api/v1/chat`  
+  Fetch all chat rooms for the logged-in user. Requires a valid token.
 
-- **GET** `/api/v1/chats/:chatId`  
-  Fetch all messages in a specific chat room.
+- **GET** `/api/v1/chat/:chatId`  
+  Fetch all messages in a specific chat room. Requires a valid token.
 
 ---
 

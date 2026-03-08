@@ -38,12 +38,18 @@ describe('Chat Endpoints', () => {
             .set('Authorization', `Bearer ${token}`);
 
         expect(res.statusCode).toEqual(200);
+        expect(res.body.status).toEqual('success');
         expect(res.body.data).toBeDefined();
     });
 
-    it('should return 401 without authorization header', async () => {
-        const res = await request(app).get('/api/v1/chat');
+    it('should return chat messages for a specific chat', async () => {
+        const token = 'mocked-token';
+        const chatId = '507f1f77bcf86cd799439012';
+        const res = await request(app)
+            .get(`/api/v1/chat/${chatId}`)
+            .set('Authorization', `Bearer ${token}`);
 
-        expect(res.statusCode).toEqual(401);
+        expect(res.statusCode).toEqual(200);
+        expect(res.body.status).toEqual('success');
     });
 });

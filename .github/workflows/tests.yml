@@ -29,7 +29,6 @@ jobs:
     - name: Run tests
       run: npm test
       env:
-        DB_URI: ${{ secrets.DB_URI || 'mongodb://localhost:27017/chatty-test' }}
         NODE_ENV: test
 
     - name: Upload coverage reports
@@ -39,3 +38,4 @@ jobs:
         files: ./coverage/coverage-final.json
         flags: unittests
         name: codecov-umbrella
+        fail_ci_if_error: false
